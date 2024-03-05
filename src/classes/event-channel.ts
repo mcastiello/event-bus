@@ -100,7 +100,7 @@ export class EventChannel<Definition extends GenericEventBusDefinition, Channel 
 
     this.#eventSubscriptions[event]?.forEach((data) => {
       const result = data.handler(payload);
-      data.abort = result instanceof CancellablePromise ? result.cancel : undefined;
+      data.abort = result instanceof CancellablePromise ? () => result.cancel() : undefined;
     });
   }
 
