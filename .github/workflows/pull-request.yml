@@ -24,10 +24,10 @@ jobs:
           diff-search: true
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Complete Step
-        if: ${{ steps.check.outputs.changed == 'true' }}
+        if: ${{ steps.check.outputs.changed == 'true' && steps.check.outputs.type != 'undefined' }}
         run: exit 0
       - name: Fail Check
-        if: ${{ steps.check.outputs.changed == 'false' }}
+        if: ${{ steps.check.outputs.changed == 'false' || steps.check.outputs.type == 'undefined' }}
         run: exit 1
 
   cache-install:
