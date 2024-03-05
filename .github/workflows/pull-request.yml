@@ -5,6 +5,31 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
+  check-version:
+    name: Check Version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ./package.json
+      - name: Check Version
+        id: check
+        uses: EndBug/version-check@v2
+        with:
+          diff-search: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Complete Step
+        if: ${{ steps.check.outputs.changed == 'true' }}
+        run: exit 0
+      - name: Fail Check
+        if: ${{ steps.check.outputs.changed == 'false' }}
+        run: exit 1
+
   cache-install:
     name: Install
     runs-on: ubuntu-latest
@@ -57,6 +82,8 @@ jobs:
     name: Test
     needs: cache-install
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -77,6 +104,16 @@ jobs:
             ${{ runner.os }}-modules-
       - name: Run Tests
         run: yarn test
+      - name: Generate Code Summary
+        run: npx istanbul report --include coverage/coverage-final.json --dir coverage json-summary
+      - name: Coverage Comment
+        uses: davelosert/vitest-coverage-report-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          json-summary-path: coverage/coverage-summary.json
+          json-final-path: coverage/coverage-final.json
+          file-coverage-mode: all
+          name: Test Code Coverage
 
   build:
     name: Build
