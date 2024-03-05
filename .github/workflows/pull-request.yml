@@ -23,7 +23,7 @@ jobs:
         with:
           diff-search: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          file-url: master
+          file-url: https://raw.githubusercontent.com/mcastiello/event-bus/master/package.json
       - name: Complete Step
         if: ${{ steps.check.outputs.changed == 'true' && steps.check.outputs.type != 'undefined' }}
         run: exit 0
