@@ -148,9 +148,8 @@ export class EventChannel<Definition extends GenericEventBusDefinition, Channel 
     return [payload, isPublishingPrevented];
   }
 
-  publish<Event extends EventOf<Definition, Channel>>(
-    ...[event, payload]: PublishArguments<Definition, Channel, Event>
-  ) {
+  publish<Event extends EventOf<Definition, Channel>>(...args: PublishArguments<Definition, Channel, Event>) {
+    const [event, payload] = args;
     const [parsedData, isPublishingPrevented] = this.#parseEventPayload(event, payload);
 
     if (!isPublishingPrevented) {
@@ -161,7 +160,8 @@ export class EventChannel<Definition extends GenericEventBusDefinition, Channel 
     }
   }
 
-  run<Event extends EventOf<Definition, Channel>>(...[event, payload]: PublishArguments<Definition, Channel, Event>) {
+  run<Event extends EventOf<Definition, Channel>>(...args: PublishArguments<Definition, Channel, Event>) {
+    const [event, payload] = args;
     const [parsedData, isPublishingPrevented] = this.#parseEventPayload(event, payload);
 
     if (!isPublishingPrevented) {
