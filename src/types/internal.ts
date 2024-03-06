@@ -1,4 +1,4 @@
-import { ChannelOf, EventDataOf, EventOf, GenericEventBusDefinition, SubscriptionOf } from "./events";
+import { ChannelOf, EventDataOf, EventOf, GenericEventBusDefinition, InterceptorOf, SubscriptionOf } from "./events";
 
 export type ChannelCache<
   Definitions extends GenericEventBusDefinition,
@@ -12,6 +12,13 @@ export type ChannelSubscriptions<
   [Event in EventOf<Definitions, Channel>]: Map<string, SubscriptionData<Definitions, Channel, Event>>;
 }>;
 
+export type ChannelInterceptors<
+  Definitions extends GenericEventBusDefinition,
+  Channel extends ChannelOf<Definitions>,
+> = Partial<{
+  [Event in EventOf<Definitions, Channel>]: Map<string, InterceptorData<Definitions, Channel, Event>>;
+}>;
+
 export type SubscriptionData<
   Definitions extends GenericEventBusDefinition,
   Channel extends ChannelOf<Definitions>,
@@ -22,7 +29,16 @@ export type SubscriptionData<
   abort?: () => void;
 };
 
-export type ClearSubscription = () => void;
+export type InterceptorData<
+  Definitions extends GenericEventBusDefinition,
+  Channel extends ChannelOf<Definitions>,
+  Event extends EventOf<Definitions, Channel>,
+> = {
+  interceptor: InterceptorOf<Definitions, Channel, Event>;
+  priority: number;
+};
+
+export type ClearFunction = () => void;
 
 export type PublishArguments<
   Definitions extends GenericEventBusDefinition,

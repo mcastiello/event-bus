@@ -3,11 +3,18 @@ import {
   EventDataOf,
   EventOf,
   GenericEventBusDefinition,
+  InterceptorOf,
   SubscriptionConfig,
   SubscriptionOf,
 } from "../types";
 import { CancellablePromise } from "../utils/promises";
-import { ChannelCache, ClearSubscription, ChannelSubscriptions, PublishArguments } from "../types/internal";
+import {
+  ChannelCache,
+  ClearFunction,
+  ChannelSubscriptions,
+  PublishArguments,
+  ChannelInterceptors,
+} from "../types/internal";
 
 export class EventChannel<Definition extends GenericEventBusDefinition, Channel extends ChannelOf<Definition>> {
   #cacheEvents: boolean = true;
@@ -15,6 +22,7 @@ export class EventChannel<Definition extends GenericEventBusDefinition, Channel 
 
   #eventCache: ChannelCache<Definition, Channel> = {};
   #eventSubscriptions: ChannelSubscriptions<Definition, Channel> = {};
+  #eventInterceptors: ChannelInterceptors<Definition, Channel> = {};
 
   set cacheEvents(value: boolean) {
     this.#cacheEvents = value;
@@ -36,11 +44,34 @@ export class EventChannel<Definition extends GenericEventBusDefinition, Channel 
     return this.#publishAsynchronously;
   }
 
+  intercept<Event extends EventOf<Definition, Channel>>(
+    event: Event,
+    interceptor: InterceptorOf<Definition, Channel, Event>,
+    priority: number = 0,
+  ): ClearFunction {
+    const id: string = crypto.randomUUID();
+
+    const clearInterceptor = () => {
+      const data = this.#eventInterceptors[event]?.get(id);
+      if (data) {
+        this.#eventInterceptors[event]?.delete(id);
+      }
+    };
+
+    if (!this.#eventInterceptors[event]) {
+      this.#eventInterceptors[event] = new Map();
+    }
+
+    this.#eventInterceptors[event]?.set(id, { interceptor, priority });
+
+    return clearInterceptor;
+  }
+
   subscribe<Event extends EventOf<Definition, Channel>>(
     event: Event,
     subscription: SubscriptionOf<Definition, Channel, Event>,
     options: SubscriptionConfig = {},
-  ): ClearSubscription {
+  ): ClearFunction {
     const { sync = !this.publishAsynchronously, once = false } = options;
     const id: string = crypto.randomUUID();
 
@@ -91,30 +122,65 @@ export class EventChannel<Definition extends GenericEventBusDefinition, Channel 
     });
   }
 
+  #parseEventPayload<Event extends EventOf<Definition, Channel>>(
+    event: Event,
+    payload?: EventDataOf<Definition, Channel, Event>,
+  ): [EventDataOf<Definition, Channel, Event> | undefined, boolean] {
+    const { data, isPublishingPrevented } = Array.from(this.#eventInterceptors[event]?.values() || [])
+      .sort((a, b) => b.priority - a.priority) // Sort in descending order based on interceptor priority
+      .reduce(
+        ({ data, isPublishingPrevented, isInterceptorStopped }, { interceptor }) => {
+          if (!isInterceptorStopped && !isPublishingPrevented) {
+            const interceptedData = interceptor(data, {
+              stopInterceptors: () => (isInterceptorStopped = true),
+              preventPublishing: () => (isPublishingPrevented = true),
+            });
+            return { data: interceptedData, isPublishingPrevented, isInterceptorStopped };
+          } else {
+            return { data, isPublishingPrevented, isInterceptorStopped };
+          }
+        },
+        { data: payload, isPublishingPrevented: false, isInterceptorStopped: false },
+      );
+    if (this.#cacheEvents && !isPublishingPrevented) {
+      this.#eventCache[event] = data;
+    }
+    return [payload, isPublishingPrevented];
+  }
+
   publish<Event extends EventOf<Definition, Channel>>(...args: PublishArguments<Definition, Channel, Event>) {
     const [event, payload] = args;
+    const [parsedData, isPublishingPrevented] = this.#parseEventPayload(event, payload);
 
-    if (this.#cacheEvents) {
-      this.#eventCache[event] = payload;
+    if (!isPublishingPrevented) {
+      this.#eventSubscriptions[event]?.forEach((data) => {
+        const result = data.handler(parsedData);
+        data.abort = result instanceof CancellablePromise ? () => result.cancel() : undefined;
+      });
     }
-
-    this.#eventSubscriptions[event]?.forEach((data) => {
-      const result = data.handler(payload);
-      data.abort = result instanceof CancellablePromise ? () => result.cancel() : undefined;
-    });
   }
 
   run<Event extends EventOf<Definition, Channel>>(...args: PublishArguments<Definition, Channel, Event>) {
     const [event, payload] = args;
+    const [parsedData, isPublishingPrevented] = this.#parseEventPayload(event, payload);
 
-    if (this.#cacheEvents) {
-      this.#eventCache[event] = payload;
+    if (!isPublishingPrevented) {
+      this.#eventSubscriptions[event]?.forEach((data) => {
+        data.subscription(parsedData);
+        data.abort = undefined;
+      });
     }
+  }
 
-    this.#eventSubscriptions[event]?.forEach((data) => {
-      data.subscription(payload);
-      data.abort = undefined;
-    });
+  clearInterceptors<Event extends EventOf<Definition, Channel>>(event?: Event) {
+    if (event && this.#eventInterceptors[event]) {
+      this.#eventInterceptors[event]?.clear();
+      delete this.#eventInterceptors[event];
+    } else {
+      Object.keys(this.#eventInterceptors).forEach((event) => {
+        this.clearInterceptors(event as EventOf<Definition, Channel>);
+      });
+    }
   }
 
   clearSubscriptions<Event extends EventOf<Definition, Channel>>(event?: Event) {
@@ -139,6 +205,7 @@ export class EventChannel<Definition extends GenericEventBusDefinition, Channel 
 
   clear() {
     this.clearCache();
+    this.clearInterceptors();
     this.clearSubscriptions();
   }
 }

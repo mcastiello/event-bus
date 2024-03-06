@@ -1,12 +1,12 @@
 {
   "compilerOptions": {
     "strict": true,
-    "target": "es6",
+    "target": "esnext",
     "lib": ["dom", "dom.iterable", "esnext"],
     "types": ["jest"],
     "declaration": true,
     "outDir": "./dist",
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "esModuleInterop": true,
     "emitDeclarationOnly": false,
     "forceConsistentCasingInFileNames": true,
