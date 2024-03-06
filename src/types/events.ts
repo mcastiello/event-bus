@@ -50,3 +50,17 @@ export type SubscriptionOf<
   Channel extends ChannelOf<Definitions>,
   Event extends EventOf<Definitions, Channel>,
 > = (data?: EventDataOf<Definitions, Channel, Event>) => void | PromiseLike<void>;
+
+export type InterceptorOptions = {
+  stopInterceptors: () => void;
+  preventPublishing: () => void;
+};
+
+export type InterceptorOf<
+  Definitions extends GenericEventBusDefinition,
+  Channel extends ChannelOf<Definitions>,
+  Event extends EventOf<Definitions, Channel>,
+> = <Data extends EventDataOf<Definitions, Channel, Event> | undefined>(
+  data: Data,
+  options: InterceptorOptions,
+) => Data;
