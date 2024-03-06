@@ -18,8 +18,15 @@ export class EventBus<Definition extends GenericEventBusDefinition = undefined> 
     privateId?: string,
     config: EventChannelConfig = {},
   ): EventChannel<Definition, Channel> {
-    const { cacheEvents = this.#cacheEvents, publishAsynchronously = this.#publishAsynchronously } = config;
     const channelName = (privateId ? `${channel}-${privateId}` : channel) as Channel;
+    const {
+      cacheEvents = this.#channelsMap[channelName] !== undefined
+        ? !!this.#channelsMap[channelName]?.cacheEvents
+        : this.#cacheEvents,
+      publishAsynchronously = this.#channelsMap[channelName] !== undefined
+        ? !!this.#channelsMap[channelName]?.publishAsynchronously
+        : this.#publishAsynchronously,
+    } = config;
 
     const eventChannel = this.#channelsMap[channelName] || new EventChannel<Definition, Channel>();
 
