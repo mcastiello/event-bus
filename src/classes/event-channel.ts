@@ -11,8 +11,8 @@ import { CancellablePromise } from "../utils/promises";
 import {
   ChannelCache,
   ClearFunction,
-  ChannelSubscriptions,
   PublishArguments,
+  ChannelSubscriptions,
   ChannelInterceptors,
 } from "../types/internal";
 
@@ -25,10 +25,12 @@ export class EventChannel<Definition extends GenericEventBusDefinition, Channel 
   #eventInterceptors: ChannelInterceptors<Definition, Channel> = {};
 
   set cacheEvents(value: boolean) {
-    this.#cacheEvents = value;
+    if (value !== this.#cacheEvents) {
+      this.#cacheEvents = value;
 
-    if (!value) {
-      this.#eventCache = {};
+      if (!value) {
+        this.#eventCache = {};
+      }
     }
   }
 
@@ -145,7 +147,7 @@ export class EventChannel<Definition extends GenericEventBusDefinition, Channel 
     if (this.#cacheEvents && !isPublishingPrevented) {
       this.#eventCache[event] = data;
     }
-    return [payload, isPublishingPrevented];
+    return [data, isPublishingPrevented];
   }
 
   publish<Event extends EventOf<Definition, Channel>>(...args: PublishArguments<Definition, Channel, Event>) {

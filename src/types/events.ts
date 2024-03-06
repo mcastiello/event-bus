@@ -60,7 +60,7 @@ export type InterceptorOf<
   Definitions extends GenericEventBusDefinition,
   Channel extends ChannelOf<Definitions>,
   Event extends EventOf<Definitions, Channel>,
-> = <Data extends EventDataOf<Definitions, Channel, Event> | undefined>(
-  data: Data,
+> = (
+  data: EventDataOf<Definitions, Channel, Event> | undefined,
   options: InterceptorOptions,
-) => Data;
+) => EventDataOf<Definitions, Channel, Event> | undefined;

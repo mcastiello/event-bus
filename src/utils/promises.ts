@@ -1,6 +1,4 @@
 export class CancellablePromise<ReturnType = unknown> extends Promise<ReturnType | undefined> {
-  #isCancelled: boolean = false;
-  #isResolved: boolean = false;
   #controller: AbortController;
 
   constructor(
@@ -10,10 +8,12 @@ export class CancellablePromise<ReturnType = unknown> extends Promise<ReturnType
     ) => void,
   ) {
     const controller = new AbortController();
+    let isCancelled: boolean = false;
+    let isResolved: boolean = false;
     super((resolve: (value?: ReturnType | PromiseLike<ReturnType>) => void, reject: (reason?: unknown) => void) => {
       const resolver = (value?: ReturnType | PromiseLike<ReturnType>) => {
-        if (!this.#isCancelled) {
-          this.#isResolved = true;
+        if (!isCancelled) {
+          isResolved = true;
           resolve(value);
         }
       };
@@ -21,8 +21,8 @@ export class CancellablePromise<ReturnType = unknown> extends Promise<ReturnType
       executor(resolver, reject);
 
       controller.signal.addEventListener("abort", () => {
-        if (!this.#isResolved) {
-          this.#isCancelled = true;
+        if (!isResolved) {
+          isCancelled = true;
           resolve(undefined);
         }
       });
