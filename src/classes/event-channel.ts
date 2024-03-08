@@ -1,9 +1,11 @@
 import {
   ChannelOf,
+  EventBusDefinitionOf,
   EventDataOf,
   EventOf,
-  GenericEventBusDefinition,
+  GenericEventBusConfiguration,
   InterceptorOf,
+  ResponseDataOf,
   SubscriptionConfig,
   SubscriptionOf,
 } from "../types";
@@ -14,15 +16,26 @@ import {
   PublishArguments,
   ChannelSubscriptions,
   ChannelInterceptors,
+  ResponseHandler,
+  ChannelResponders,
 } from "../types/internal";
 
-export class EventChannel<Definition extends GenericEventBusDefinition, Channel extends ChannelOf<Definition>> {
+export class EventChannel<
+  Definition extends GenericEventBusConfiguration,
+  Channel extends ChannelOf<EventBusDefinitionOf<Definition>>,
+> {
+  readonly #eventConfig: Definition | undefined;
   #cacheEvents: boolean = true;
   #publishAsynchronously: boolean = true;
 
   #eventCache: ChannelCache<Definition, Channel> = {};
   #eventSubscriptions: ChannelSubscriptions<Definition, Channel> = {};
   #eventInterceptors: ChannelInterceptors<Definition, Channel> = {};
+  #eventResponders: ChannelResponders<Definition, Channel> = {};
+
+  constructor(eventConfig?: Definition) {
+    this.#eventConfig = eventConfig;
+  }
 
   set cacheEvents(value: boolean) {
     if (value !== this.#cacheEvents) {
@@ -46,7 +59,7 @@ export class EventChannel<Definition extends GenericEventBusDefinition, Channel 
     return this.#publishAsynchronously;
   }
 
-  intercept<Event extends EventOf<Definition, Channel>>(
+  intercept<Event extends EventOf<EventBusDefinitionOf<Definition>, Channel>>(
     event: Event,
     interceptor: InterceptorOf<Definition, Channel, Event>,
     priority: number = 0,
@@ -69,7 +82,7 @@ export class EventChannel<Definition extends GenericEventBusDefinition, Channel 
     return clearInterceptor;
   }
 
-  subscribe<Event extends EventOf<Definition, Channel>>(
+  subscribe<Event extends EventOf<EventBusDefinitionOf<Definition>, Channel>>(
     event: Event,
     subscription: SubscriptionOf<Definition, Channel, Event>,
     options: SubscriptionConfig = {},
@@ -110,7 +123,7 @@ export class EventChannel<Definition extends GenericEventBusDefinition, Channel 
     return clearSubscription;
   }
 
-  once<Event extends EventOf<Definition, Channel>>(
+  once<Event extends EventOf<EventBusDefinitionOf<Definition>, Channel>>(
     event: Event,
   ): CancellablePromise<EventDataOf<Definition, Channel, Event>> {
     return new CancellablePromise<EventDataOf<Definition, Channel, Event>>((resolve) => {
@@ -124,10 +137,10 @@ export class EventChannel<Definition extends GenericEventBusDefinition, Channel 
     });
   }
 
-  #parseEventPayload<Event extends EventOf<Definition, Channel>>(
+  #parseEventPayload<Event extends EventOf<EventBusDefinitionOf<Definition>, Channel>>(
     event: Event,
-    payload?: EventDataOf<Definition, Channel, Event>,
-  ): [EventDataOf<Definition, Channel, Event> | undefined, boolean] {
+    payload: EventDataOf<Definition, Channel, Event>,
+  ): [EventDataOf<Definition, Channel, Event>, boolean] {
     const { data, isPublishingPrevented } = Array.from(this.#eventInterceptors[event]?.values() || [])
       .sort((a, b) => b.priority - a.priority) // Sort in descending order based on interceptor priority
       .reduce(
@@ -150,8 +163,10 @@ export class EventChannel<Definition extends GenericEventBusDefinition, Channel 
     return [data, isPublishingPrevented];
   }
 
-  publish<Event extends EventOf<Definition, Channel>>(...args: PublishArguments<Definition, Channel, Event>) {
-    const [event, payload] = args;
+  publish<Event extends EventOf<EventBusDefinitionOf<Definition>, Channel>>(
+    ...args: PublishArguments<Definition, Channel, Event>
+  ) {
+    const [event, payload] = args as [Event, EventDataOf<Definition, Channel, Event>];
     const [parsedData, isPublishingPrevented] = this.#parseEventPayload(event, payload);
 
     if (!isPublishingPrevented) {
@@ -162,8 +177,10 @@ export class EventChannel<Definition extends GenericEventBusDefinition, Channel 
     }
   }
 
-  run<Event extends EventOf<Definition, Channel>>(...args: PublishArguments<Definition, Channel, Event>) {
-    const [event, payload] = args;
+  run<Event extends EventOf<EventBusDefinitionOf<Definition>, Channel>>(
+    ...args: PublishArguments<Definition, Channel, Event>
+  ) {
+    const [event, payload] = args as [Event, EventDataOf<Definition, Channel, Event>];
     const [parsedData, isPublishingPrevented] = this.#parseEventPayload(event, payload);
 
     if (!isPublishingPrevented) {
@@ -174,30 +191,77 @@ export class EventChannel<Definition extends GenericEventBusDefinition, Channel 
     }
   }
 
-  clearInterceptors<Event extends EventOf<Definition, Channel>>(event?: Event) {
+  response<Event extends EventOf<EventBusDefinitionOf<Definition>, Channel>>(
+    event: Event,
+    handler: ResponseHandler<Definition, Channel, Event>,
+  ): ClearFunction {
+    const clearResponder = () => {
+      delete this.#eventResponders[event];
+    };
+
+    this.#eventResponders[event] = handler;
+
+    return clearResponder;
+  }
+
+  request<Event extends EventOf<EventBusDefinitionOf<Definition>, Channel>>(
+    ...args: PublishArguments<Definition, Channel, Event>
+  ): CancellablePromise<ResponseDataOf<Definition, Channel, Event>> {
+    const [event, payload] = args as [Event, EventDataOf<Definition, Channel, Event>];
+    const handler = this.#eventResponders[event];
+
+    if (handler) {
+      return new CancellablePromise<ResponseDataOf<Definition, Channel, Event>>((resolve, reject) =>
+        handler(payload, resolve, reject),
+      );
+      // async (resolve, reject) => {
+      //   try {
+      //     const response = await new CancellablePromise<ResponseDataOf<Definition, Channel, Event>>((resolve, reject) =>
+      //       handler(payload, resolve, reject),
+      //     );
+      //   } catch (error) {}
+      // }
+    } else {
+      return CancellablePromise.reject<ResponseDataOf<Definition, Channel, Event>>(
+        `There isn't a responder for the event "${event}"`,
+      );
+    }
+  }
+
+  clearInterceptors<Event extends EventOf<EventBusDefinitionOf<Definition>, Channel>>(event?: Event) {
     if (event && this.#eventInterceptors[event]) {
       this.#eventInterceptors[event]?.clear();
       delete this.#eventInterceptors[event];
     } else {
       Object.keys(this.#eventInterceptors).forEach((event) => {
-        this.clearInterceptors(event as EventOf<Definition, Channel>);
+        this.clearInterceptors(event as EventOf<EventBusDefinitionOf<Definition>, Channel>);
       });
     }
   }
 
-  clearSubscriptions<Event extends EventOf<Definition, Channel>>(event?: Event) {
+  clearResponders<Event extends EventOf<EventBusDefinitionOf<Definition>, Channel>>(event?: Event) {
+    if (event && this.#eventResponders[event]) {
+      delete this.#eventResponders[event];
+    } else {
+      Object.keys(this.#eventResponders).forEach((event) => {
+        this.clearInterceptors(event as EventOf<EventBusDefinitionOf<Definition>, Channel>);
+      });
+    }
+  }
+
+  clearSubscriptions<Event extends EventOf<EventBusDefinitionOf<Definition>, Channel>>(event?: Event) {
     if (event && this.#eventSubscriptions[event]) {
       this.#eventSubscriptions[event]?.forEach((data) => data.abort?.());
       this.#eventSubscriptions[event]?.clear();
       delete this.#eventSubscriptions[event];
     } else {
       Object.keys(this.#eventSubscriptions).forEach((event) => {
-        this.clearSubscriptions(event as EventOf<Definition, Channel>);
+        this.clearSubscriptions(event as EventOf<EventBusDefinitionOf<Definition>, Channel>);
       });
     }
   }
 
-  clearCache<Event extends EventOf<Definition, Channel>>(event?: Event) {
+  clearCache<Event extends EventOf<EventBusDefinitionOf<Definition>, Channel>>(event?: Event) {
     if (event && this.#eventCache[event]) {
       delete this.#eventCache[event];
     } else {
@@ -208,6 +272,7 @@ export class EventChannel<Definition extends GenericEventBusDefinition, Channel 
   clear() {
     this.clearCache();
     this.clearInterceptors();
+    this.clearResponders();
     this.clearSubscriptions();
   }
 }
