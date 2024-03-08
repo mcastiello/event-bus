@@ -1,4 +1,5 @@
-export type EventDefinition<Events> = {
+export type EventDefinition<Events, Value> = {
+  defaultValue?: Value;
   responseEvent?: Events;
   errorEvent?: Events;
   cache?: boolean;
@@ -31,7 +32,7 @@ export type EventChannelConfiguration<
 > = Definitions extends undefined
   ? undefined
   : {
-      [Event in keyof Definitions[Channel]]?: EventDefinition<keyof Definitions[Channel]>;
+      [Event in keyof Definitions[Channel]]?: EventDefinition<keyof Definitions[Channel], Definitions[Channel][Event]>;
     };
 
 export type EventBusConfiguration<Definitions extends GenericEventBusDefinition> = Definitions extends undefined
