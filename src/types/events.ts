@@ -55,6 +55,11 @@ export type ChannelDefinitionOf<
     ? EventBusDefinitionOf<Definitions>[Channel]
     : never;
 
+export type ChannelConfigurationOf<
+  Definitions extends GenericEventBusConfiguration,
+  Channel extends ChannelOf<EventBusDefinitionOf<Definitions>>,
+> = Definitions extends undefined ? unknown : Channel extends keyof Definitions ? Definitions[Channel] : never;
+
 export type EventDataOf<
   Definitions extends GenericEventBusConfiguration,
   Channel extends ChannelOf<EventBusDefinitionOf<Definitions>>,

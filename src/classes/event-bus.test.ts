@@ -10,6 +10,8 @@ enum Channels {
 enum Events {
   Boolean = "bool",
   String = "str",
+}
+enum RequestEvents {
   Request = "req",
   Response = "resp",
   Error = "err",
@@ -25,17 +27,22 @@ type Def = {
     [Events.String]: string[];
   };
   [Channels.C]: {
-    [Events.Request]: string;
-    [Events.Response]: number[];
-    [Events.Error]: Error;
+    [RequestEvents.Request]: string;
+    [RequestEvents.Response]: number[];
+    [RequestEvents.Error]: Error;
   };
 };
 
 const config: EventBusConfiguration<Def> = {
+  [Channels.B]: {
+    [Events.String]: {
+      defaultValue: ["a", "b"],
+    },
+  },
   [Channels.C]: {
-    [Events.Request]: {
-      responseEvent: Events.Response,
-      errorEvent: Events.Error,
+    [RequestEvents.Request]: {
+      responseEvent: RequestEvents.Response,
+      errorEvent: RequestEvents.Error,
     },
   },
 };
@@ -45,6 +52,7 @@ describe("EventBus", () => {
   beforeEach(() => {
     bus.clear();
   });
+
   test("It should listen for an event", () => {
     const subscription = jest.fn();
 
@@ -95,6 +103,13 @@ describe("EventBus", () => {
     bus.getChannel(Channels.A).subscribe(Events.Boolean, subscription);
 
     expect(subscription).toHaveBeenCalledWith(true);
+  });
+  test("It should get the default data if it has been set in the channel definition", () => {
+    const subscription = jest.fn();
+
+    bus.getChannel(Channels.B).subscribe(Events.String, subscription);
+
+    expect(subscription).toHaveBeenCalledWith(["a", "b"]);
   });
   test("It should not get the data if the event cache gets cleared", () => {
     const subscription = jest.fn();

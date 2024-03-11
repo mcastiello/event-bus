@@ -42,7 +42,10 @@ export type ChannelResponders<
   Definitions extends GenericEventBusConfiguration,
   Channel extends ChannelOf<EventBusDefinitionOf<Definitions>>,
 > = Partial<{
-  [Event in EventOf<EventBusDefinitionOf<Definitions>, Channel>]: ResponseHandler<Definitions, Channel, Event>;
+  [Event in EventOf<EventBusDefinitionOf<Definitions>, Channel>]: {
+    forceSyncResponse?: boolean;
+    handler: ResponseHandler<Definitions, Channel, Event>;
+  };
 }>;
 
 export type SubscriptionData<

@@ -1,4 +1,5 @@
 import {
+  ChannelConfigurationOf,
   ChannelOf,
   EventBusConfig,
   EventBusDefinitionOf,
@@ -28,6 +29,7 @@ export class EventBus<Definition extends GenericEventBusConfiguration = undefine
     privateId?: string,
     config: EventChannelConfig = {},
   ): EventChannel<Definition, Channel> {
+    const channelConfig = this.#eventConfig?.[channel] as ChannelConfigurationOf<Definition, Channel>;
     const channelName = (privateId ? `${channel}-${privateId}` : channel) as Channel;
     const {
       cacheEvents = this.#channelsMap[channelName] !== undefined
@@ -38,7 +40,7 @@ export class EventBus<Definition extends GenericEventBusConfiguration = undefine
         : this.#publishAsynchronously,
     } = config;
 
-    const eventChannel = this.#channelsMap[channelName] || new EventChannel<Definition, Channel>(this.#eventConfig);
+    const eventChannel = this.#channelsMap[channelName] || new EventChannel<Definition, Channel>(channelConfig);
 
     if (!this.#channelsMap[channelName]) {
       this.#channelsMap[channelName] = eventChannel;
