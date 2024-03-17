@@ -1,4 +1,5 @@
 import { EventBus } from "./event-bus";
+import { EventBusConfiguration } from "../types";
 
 enum Channels {
   A = "A",
@@ -12,27 +13,38 @@ enum Events {
 
 type Def = {
   [Channels.A]: {
-    [Events.Boolean]: {
-      payload: boolean;
-    };
-    [Events.String]: {
-      payload: string;
-    };
+    [Events.Boolean]: { payload: boolean };
+    [Events.String]: { payload: string };
   };
   [Channels.B]: {
-    [Events.Boolean]: {
-      payload: undefined;
-    };
-    [Events.String]: {
-      payload: string[];
-    };
+    [Events.Boolean]: { payload: undefined };
+    [Events.String]: { payload: string[] };
   };
 };
 
+const config: EventBusConfiguration<Def> = {
+  [Channels.B]: {
+    [Events.String]: {
+      defaultValue: ["a", "b"],
+    },
+  },
+};
+
 describe("EventBus", () => {
-  const bus = new EventBus<Def>();
+  const bus = new EventBus({ events: config });
   beforeEach(() => {
     bus.clear();
+  });
+
+  test("It should create a generic untyped Event Bus", () => {
+    const untypedBus = new EventBus();
+    const subscription = jest.fn();
+
+    untypedBus.getChannel("test").subscribe("event", subscription);
+
+    untypedBus.getChannel("test").publish("event", null);
+
+    expect(subscription).toHaveBeenCalledWith(null);
   });
   test("It should listen for an event", () => {
     const subscription = jest.fn();
@@ -84,6 +96,13 @@ describe("EventBus", () => {
     bus.getChannel(Channels.A).subscribe(Events.Boolean, subscription);
 
     expect(subscription).toHaveBeenCalledWith(true);
+  });
+  test("It should get the default data if it has been set in the channel definition", () => {
+    const subscription = jest.fn();
+
+    bus.getChannel(Channels.B).subscribe(Events.String, subscription);
+
+    expect(subscription).toHaveBeenCalledWith(["a", "b"]);
   });
   test("It should not get the data if the event cache gets cleared", () => {
     const subscription = jest.fn();

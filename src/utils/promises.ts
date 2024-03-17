@@ -1,17 +1,18 @@
-export class CancellablePromise<ReturnType = unknown> extends Promise<ReturnType | undefined> {
+export class CancellablePromise<ReturnType = unknown> extends Promise<ReturnType> {
   #controller: AbortController;
 
   constructor(
     executor: (
-      resolve: (value?: ReturnType | PromiseLike<ReturnType>) => void,
+      resolve: (value: ReturnType | PromiseLike<ReturnType>) => void,
       reject: (reason?: unknown) => void,
     ) => void,
   ) {
     const controller = new AbortController();
     let isCancelled: boolean = false;
     let isResolved: boolean = false;
-    super((resolve: (value?: ReturnType | PromiseLike<ReturnType>) => void, reject: (reason?: unknown) => void) => {
-      const resolver = (value?: ReturnType | PromiseLike<ReturnType>) => {
+
+    super((resolve: (value: ReturnType | PromiseLike<ReturnType>) => void, reject: (reason?: unknown) => void) => {
+      const resolver = (value: ReturnType | PromiseLike<ReturnType>) => {
         if (!isCancelled) {
           isResolved = true;
           resolve(value);
@@ -23,7 +24,7 @@ export class CancellablePromise<ReturnType = unknown> extends Promise<ReturnType
       controller.signal.addEventListener("abort", () => {
         if (!isResolved) {
           isCancelled = true;
-          resolve(undefined);
+          resolve(undefined as ReturnType);
         }
       });
     });
@@ -33,6 +34,14 @@ export class CancellablePromise<ReturnType = unknown> extends Promise<ReturnType
 
   cancel() {
     this.#controller.abort();
+  }
+
+  static resolve<ResolveType = unknown>(value?: ResolveType | PromiseLike<ResolveType>) {
+    return new CancellablePromise<ResolveType | undefined>((resolve) => resolve(value));
+  }
+
+  static reject<ResolveType = unknown>(value?: unknown) {
+    return new CancellablePromise<ResolveType>((_, reject) => reject(value));
   }
 
   static defer<Args extends unknown[], ReturnType>(
