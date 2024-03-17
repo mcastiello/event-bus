@@ -22,12 +22,8 @@ import {
   ChannelResponders,
 } from "../types/internal";
 
-export class EventChannel<
-  Definitions extends GenericEventBusDefinition,
-  Config extends EventBusConfiguration<Definitions>,
-  Channel extends ChannelOf<Definitions>,
-> {
-  readonly #channelConfig: ChannelConfigurationOf<Definitions, Config, Channel> | undefined;
+export class EventChannel<Definitions extends GenericEventBusDefinition, Channel extends ChannelOf<Definitions>> {
+  readonly #channelConfig: ChannelConfigurationOf<Definitions, EventBusConfiguration<Definitions>, Channel> | undefined;
   #cacheEvents: boolean = true;
   #publishAsynchronously: boolean = true;
 
@@ -36,7 +32,7 @@ export class EventChannel<
   #eventInterceptors: ChannelInterceptors<Definitions, Channel> = {};
   #eventResponders: ChannelResponders<Definitions, Channel> = {};
 
-  constructor(channelConfig?: ChannelConfigurationOf<Definitions, Config, Channel>) {
+  constructor(channelConfig?: ChannelConfigurationOf<Definitions, EventBusConfiguration<Definitions>, Channel>) {
     this.#channelConfig = channelConfig;
 
     if (channelConfig) {
@@ -81,7 +77,7 @@ export class EventChannel<
     event: Event,
   ): EventConfigurationOf<Definitions, Channel, Event> | undefined {
     return this.#channelConfig?.[
-      event as keyof ChannelConfigurationOf<Definitions, Config, Channel>
+      event as keyof ChannelConfigurationOf<Definitions, EventBusConfiguration<Definitions>, Channel>
     ] as EventConfigurationOf<Definitions, Channel, Event>;
   }
 
