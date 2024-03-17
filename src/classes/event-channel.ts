@@ -1,8 +1,9 @@
 import {
   ChannelConfigurationOf,
   ChannelOf,
+  EventBusConfiguration,
+  EventConfigurationOf,
   EventDataOf,
-  EventDefinitionOf,
   EventOf,
   GenericEventBusDefinition,
   InterceptorOf,
@@ -21,8 +22,12 @@ import {
   ChannelResponders,
 } from "../types/internal";
 
-export class EventChannel<Definitions extends GenericEventBusDefinition, Channel extends ChannelOf<Definitions>> {
-  readonly #channelConfig: ChannelConfigurationOf<Definitions, Channel> | undefined;
+export class EventChannel<
+  Definitions extends GenericEventBusDefinition,
+  Config extends EventBusConfiguration<Definitions>,
+  Channel extends ChannelOf<Definitions>,
+> {
+  readonly #channelConfig: ChannelConfigurationOf<Definitions, Config, Channel> | undefined;
   #cacheEvents: boolean = true;
   #publishAsynchronously: boolean = true;
 
@@ -31,7 +36,7 @@ export class EventChannel<Definitions extends GenericEventBusDefinition, Channel
   #eventInterceptors: ChannelInterceptors<Definitions, Channel> = {};
   #eventResponders: ChannelResponders<Definitions, Channel> = {};
 
-  constructor(channelConfig?: ChannelConfigurationOf<Definitions, Channel>) {
+  constructor(channelConfig?: ChannelConfigurationOf<Definitions, Config, Channel>) {
     this.#channelConfig = channelConfig;
 
     if (channelConfig) {
@@ -74,12 +79,10 @@ export class EventChannel<Definitions extends GenericEventBusDefinition, Channel
 
   getEventConfig<Event extends EventOf<Definitions, Channel>>(
     event: Event,
-  ): EventDefinitionOf<Definitions, Channel, Event> | undefined {
-    return this.#channelConfig?.[event as keyof ChannelConfigurationOf<Definitions, Channel>] as EventDefinitionOf<
-      Definitions,
-      Channel,
-      Event
-    >;
+  ): EventConfigurationOf<Definitions, Channel, Event> | undefined {
+    return this.#channelConfig?.[
+      event as keyof ChannelConfigurationOf<Definitions, Config, Channel>
+    ] as EventConfigurationOf<Definitions, Channel, Event>;
   }
 
   intercept<Event extends EventOf<Definitions, Channel>>(

@@ -8,28 +8,31 @@ import {
 } from "../types";
 import { EventChannel } from "./event-channel";
 
-export class EventBus<Definitions extends GenericEventBusDefinition = undefined> {
+export class EventBus<
+  Definitions extends GenericEventBusDefinition = undefined,
+  Config extends EventBusConfiguration<Definitions> = EventBusConfiguration<Definitions>,
+> {
   readonly #cacheEvents: boolean = true;
   readonly #publishAsynchronously: boolean = true;
-  readonly #eventConfig: EventBusConfiguration<Definitions> | undefined;
+  readonly #eventConfig: Config | undefined;
 
   readonly #channelsMap: Partial<{
-    [Channel in ChannelOf<Definitions>]: EventChannel<Definitions, Channel>;
+    [Channel in ChannelOf<Definitions>]: EventChannel<Definitions, Config, Channel>;
   }> = {};
 
   constructor(config: EventBusConfig<Definitions> = {}) {
     const { cacheEvents = true, publishAsynchronously = true } = config;
     this.#cacheEvents = cacheEvents;
     this.#publishAsynchronously = publishAsynchronously;
-    this.#eventConfig = config.events;
+    this.#eventConfig = config.events as Config;
   }
 
   getChannel<Channel extends ChannelOf<Definitions>>(
     channel: Channel,
     privateId?: string,
     config: EventChannelConfig = {},
-  ): EventChannel<Definitions, Channel> {
-    const channelConfig = this.#eventConfig?.[channel] as ChannelConfigurationOf<Definitions, Channel>;
+  ): EventChannel<Definitions, Config, Channel> {
+    const channelConfig = this.#eventConfig?.[channel] as ChannelConfigurationOf<Definitions, Config, Channel>;
     const channelName = (privateId ? `${channel}-${privateId}` : channel) as Channel;
     const {
       cacheEvents = this.#channelsMap[channelName] !== undefined
@@ -40,7 +43,8 @@ export class EventBus<Definitions extends GenericEventBusDefinition = undefined>
         : this.#publishAsynchronously,
     } = config;
 
-    const eventChannel = this.#channelsMap[channelName] || new EventChannel<Definitions, Channel>(channelConfig);
+    const eventChannel =
+      this.#channelsMap[channelName] || new EventChannel<Definitions, Config, Channel>(channelConfig);
 
     if (!this.#channelsMap[channelName]) {
       this.#channelsMap[channelName] = eventChannel;

@@ -5,7 +5,7 @@ export type EventChannelConfig = {
   publishAsynchronously?: boolean;
 };
 
-export type EventBusConfig<Definitions extends GenericEventBusDefinition> = EventChannelConfig & {
+export type EventBusConfig<Definitions extends GenericEventBusDefinition = undefined> = EventChannelConfig & {
   events?: EventBusConfiguration<Definitions>;
 };
 

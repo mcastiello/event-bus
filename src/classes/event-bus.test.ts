@@ -31,7 +31,7 @@ const config: EventBusConfiguration<Def> = {
 };
 
 describe("EventBus", () => {
-  const bus = new EventBus<Def>({ events: config });
+  const bus = new EventBus({ events: config });
   beforeEach(() => {
     bus.clear();
   });

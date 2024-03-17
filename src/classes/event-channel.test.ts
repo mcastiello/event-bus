@@ -22,9 +22,7 @@ type Def = {
   };
 };
 
-type Config = EventBusConfiguration<Def>;
-
-const config: Config = {
+const config: EventBusConfiguration<Def> = {
   [Channels.A]: {
     [RequestEvents.Request]: {
       responseEvent: RequestEvents.Response,
@@ -34,7 +32,7 @@ const config: Config = {
 };
 
 describe("EventChannel Request/Response", () => {
-  const bus = new EventBus<Def>({ events: config });
+  const bus = new EventBus({ events: config });
   beforeEach(() => {
     bus.clear();
   });

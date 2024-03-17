@@ -1,3 +1,9 @@
+export enum EventTypeKeys {
+  Payload = "payload",
+  Response = "responseEvent",
+  Error = "errorEvent",
+}
+
 export type EventConfiguration<Payload = unknown, ResponseEvent = string, ErrorEvent = string> = {
   defaultValue?: Payload;
   responseEvent?: ResponseEvent;
@@ -8,9 +14,9 @@ export type EventConfiguration<Payload = unknown, ResponseEvent = string, ErrorE
 type Key = string | number | symbol;
 
 export type EventDefinition<Payload = unknown, ResponseEvent = string, ErrorEvent = string> = {
-  payload: Payload;
-  responseEvent?: ResponseEvent;
-  errorEvent?: ErrorEvent;
+  [EventTypeKeys.Payload]: Payload;
+  [EventTypeKeys.Response]?: ResponseEvent;
+  [EventTypeKeys.Error]?: ErrorEvent;
 };
 
 export type ChannelDefinition<Events extends Key> = {
@@ -34,24 +40,22 @@ export type EventOf<
 
 export type EventChannelConfiguration<
   Definitions extends GenericEventBusDefinition,
-  Channel extends keyof Definitions,
+  Channel extends ChannelOf<Definitions>,
 > = Definitions extends undefined
   ? undefined
   : {
-      [Event in keyof Definitions[Channel]]?: Definitions[Channel][Event] extends EventDefinition
-        ? EventConfiguration<
-            Definitions[Channel][Event]["payload"],
-            Definitions[Channel][Event]["responseEvent"],
-            Definitions[Channel][Event]["errorEvent"]
-          >
-        : undefined;
+      [Event in EventOf<Definitions, Channel>]?: EventConfiguration<
+        EventDataOf<Definitions, Channel, Event>,
+        ResponseEventOf<Definitions, Channel, Event>,
+        ErrorEventOf<Definitions, Channel, Event>
+      >;
     };
 
-export type EventBusConfiguration<Definitions extends GenericEventBusDefinition> = Definitions extends undefined
-  ? undefined
-  : {
-      [Channel in keyof Definitions]?: EventChannelConfiguration<Definitions, Channel>;
-    };
+export type EventBusConfiguration<Definitions extends GenericEventBusDefinition> = {
+  [Channel in ChannelOf<Definitions>]?: EventChannelConfiguration<Definitions, Channel>;
+};
+
+export type GenericEventBusConfiguration = EventBusConfiguration<GenericEventBusDefinition>;
 
 export type ChannelDefinitionOf<
   Definitions extends GenericEventBusDefinition,
@@ -64,13 +68,14 @@ export type ChannelDefinitionOf<
 
 export type ChannelConfigurationOf<
   Definitions extends GenericEventBusDefinition,
+  Config extends EventBusConfiguration<Definitions>,
   Channel extends ChannelOf<Definitions>,
 > = Definitions extends undefined
   ? unknown
-  : Channel extends keyof Definitions
-    ? Definitions[Channel] extends undefined
+  : Channel extends keyof Config
+    ? Config[Channel] extends undefined
       ? undefined
-      : NonNullable<Definitions[Channel]>
+      : NonNullable<Config[Channel]>
     : never;
 
 export type EventDataOf<
@@ -80,20 +85,20 @@ export type EventDataOf<
 > = Definitions extends undefined
   ? unknown
   : Event extends keyof ChannelDefinitionOf<Definitions, Channel>
-    ? "payload" extends keyof ChannelDefinitionOf<Definitions, Channel>[Event]
-      ? ChannelDefinitionOf<Definitions, Channel>[Event]["payload"]
+    ? EventTypeKeys.Payload extends keyof ChannelDefinitionOf<Definitions, Channel>[Event]
+      ? ChannelDefinitionOf<Definitions, Channel>[Event][EventTypeKeys.Payload]
       : never
     : never;
 
-export type EventConfigurationOf<
+export type EventDefinitionOf<
   Definitions extends GenericEventBusDefinition,
   Channel extends ChannelOf<Definitions>,
   Event extends EventOf<Definitions, Channel>,
 > = Definitions extends undefined
   ? never
   : Channel extends keyof Definitions
-    ? Event extends keyof ChannelConfigurationOf<Definitions, Channel>
-      ? NonNullable<ChannelConfigurationOf<Definitions, Channel>[Event]>
+    ? Event extends keyof ChannelDefinitionOf<Definitions, Channel>
+      ? NonNullable<ChannelDefinitionOf<Definitions, Channel>[Event]>
       : never
     : never;
 
@@ -121,13 +126,13 @@ export type ResponseEventOf<
   Definitions extends GenericEventBusDefinition,
   Channel extends ChannelOf<Definitions>,
   Event extends EventOf<Definitions, Channel>,
-> = EventConfigurationOf<Definitions, Channel, Event>["responseEvent"];
+> = EventDefinitionOf<Definitions, Channel, Event>[EventTypeKeys.Response];
 
 export type ErrorEventOf<
   Definitions extends GenericEventBusDefinition,
   Channel extends ChannelOf<Definitions>,
   Event extends EventOf<Definitions, Channel>,
-> = EventConfigurationOf<Definitions, Channel, Event>["errorEvent"];
+> = EventDefinitionOf<Definitions, Channel, Event>[EventTypeKeys.Error];
 
 export type ResponseDataOf<
   Definitions extends GenericEventBusDefinition,
@@ -147,7 +152,7 @@ export type ErrorDataOf<
     ? EventDataOf<Definitions, Channel, ErrorEventOf<Definitions, Channel, Event>>
     : unknown;
 
-export type EventDefinitionOf<
+export type EventConfigurationOf<
   Definitions extends GenericEventBusDefinition,
   Channel extends ChannelOf<Definitions>,
   Event extends EventOf<Definitions, Channel>,
