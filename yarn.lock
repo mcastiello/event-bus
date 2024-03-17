@@ -1361,6 +1361,11 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
+"@mcastiello/cancellable-promise@^0.0.3":
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/@mcastiello/cancellable-promise/-/cancellable-promise-0.0.3.tgz#2a066bf7148b6a61dead436af9f40778058f6aa0"
+  integrity sha512-HjoV2G282HhdjWjBwfUBI7mQsOc/ci6hBFIALhGKICQD48Mf/jcO+0220YoNUIRhf0CcYYFfzDgo7750Ba4Vhw==
+
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
   resolved "https://registry.yarnpkg.com/@nodelib/fs.scandir/-/fs.scandir-2.1.5.tgz#7619c2eb21b25483f6d167548b4cfd5a7488c3d5"

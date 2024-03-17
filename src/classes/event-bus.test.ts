@@ -217,24 +217,24 @@ describe("EventBus", () => {
     expect(subscription).not.toHaveBeenCalledWith();
   });
   test("It should listen for an event on a private channel", () => {
-    const privateId = "test";
+    const id = "test";
     const subscription = jest.fn();
 
-    bus.getChannel(Channels.A, privateId).subscribe(Events.Boolean, subscription);
+    bus.getChannel({ channel: Channels.A, id }).subscribe(Events.Boolean, subscription);
 
     bus.getChannel(Channels.A).publish(Events.Boolean, true);
 
     expect(subscription).not.toHaveBeenCalled();
 
-    bus.getChannel(Channels.A, privateId).publish(Events.Boolean, true);
+    bus.getChannel({ channel: Channels.A, id }).publish(Events.Boolean, true);
 
     expect(subscription).toHaveBeenCalledWith(true);
 
     subscription.mockClear();
 
-    bus.closeChannel(Channels.A, privateId); // The channel doesn't exist anymore
+    bus.closeChannel({ channel: Channels.A, id }); // The channel doesn't exist anymore
 
-    bus.getChannel(Channels.A, privateId).publish(Events.Boolean, true);
+    bus.getChannel({ channel: Channels.A, id }).publish(Events.Boolean, true);
 
     expect(subscription).not.toHaveBeenCalled();
   });

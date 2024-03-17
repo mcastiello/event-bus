@@ -7,6 +7,11 @@ import {
   GenericEventBusDefinition,
 } from "../types";
 import { EventChannel } from "./event-channel";
+import { PrivateChannel } from "../types/internal";
+
+const isPrivateChannel = <Definitions extends GenericEventBusDefinition, Channel extends ChannelOf<Definitions>>(
+  channel: Channel | PrivateChannel<Definitions, Channel>,
+): channel is PrivateChannel<Definitions, Channel> => typeof channel === "object" && !!channel?.channel;
 
 export class EventBus<Definitions extends GenericEventBusDefinition = undefined> {
   readonly #cacheEvents: boolean = true;
@@ -25,29 +30,29 @@ export class EventBus<Definitions extends GenericEventBusDefinition = undefined>
   }
 
   getChannel<Channel extends ChannelOf<Definitions>>(
-    channel: Channel,
-    privateId?: string,
+    channel: Channel | PrivateChannel<Definitions, Channel>,
     config: EventChannelConfig = {},
   ): EventChannel<Definitions, Channel> {
-    const channelConfig = this.#eventConfig?.[channel] as ChannelConfigurationOf<
+    const { channel: channelName, id: privateId } = isPrivateChannel(channel) ? channel : { channel, id: undefined };
+    const channelConfig = this.#eventConfig?.[channelName] as ChannelConfigurationOf<
       Definitions,
       EventBusConfiguration<Definitions>,
       Channel
     >;
-    const channelName = (privateId ? `${channel}-${privateId}` : channel) as Channel;
+    const channelId = (privateId ? `${channelName}-${privateId}` : channelName) as Channel;
     const {
-      cacheEvents = this.#channelsMap[channelName] !== undefined
-        ? !!this.#channelsMap[channelName]?.cacheEvents
+      cacheEvents = this.#channelsMap[channelId] !== undefined
+        ? !!this.#channelsMap[channelId]?.cacheEvents
         : this.#cacheEvents,
-      publishAsynchronously = this.#channelsMap[channelName] !== undefined
-        ? !!this.#channelsMap[channelName]?.publishAsynchronously
+      publishAsynchronously = this.#channelsMap[channelId] !== undefined
+        ? !!this.#channelsMap[channelId]?.publishAsynchronously
         : this.#publishAsynchronously,
     } = config;
 
-    const eventChannel = this.#channelsMap[channelName] || new EventChannel<Definitions, Channel>(channelConfig);
+    const eventChannel = this.#channelsMap[channelId] || new EventChannel<Definitions, Channel>(channelConfig);
 
-    if (!this.#channelsMap[channelName]) {
-      this.#channelsMap[channelName] = eventChannel;
+    if (!this.#channelsMap[channelId]) {
+      this.#channelsMap[channelId] = eventChannel;
     }
 
     eventChannel.cacheEvents = cacheEvents;
@@ -56,11 +61,12 @@ export class EventBus<Definitions extends GenericEventBusDefinition = undefined>
     return eventChannel;
   }
 
-  closeChannel<Channel extends ChannelOf<Definitions>>(channel: Channel, privateId?: string) {
-    const channelName = (privateId ? `${channel}-${privateId}` : channel) as Channel;
-    this.#channelsMap[channelName]?.clear();
+  closeChannel<Channel extends ChannelOf<Definitions>>(channel: Channel | PrivateChannel<Definitions, Channel>) {
+    const { channel: channelName, id: privateId } = isPrivateChannel(channel) ? channel : { channel, id: undefined };
+    const channelId = (privateId ? `${channelName}-${privateId}` : channelName) as Channel;
+    this.#channelsMap[channelId]?.clear();
 
-    delete this.#channelsMap[channelName];
+    delete this.#channelsMap[channelId];
   }
 
   clear() {
