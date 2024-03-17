@@ -36,6 +36,16 @@ describe("EventBus", () => {
     bus.clear();
   });
 
+  test("It should create a generic untyped Event Bus", () => {
+    const untypedBus = new EventBus();
+    const subscription = jest.fn();
+
+    untypedBus.getChannel("test").subscribe("event", subscription);
+
+    untypedBus.getChannel("test").publish("event", null);
+
+    expect(subscription).toHaveBeenCalledWith(null);
+  });
   test("It should listen for an event", () => {
     const subscription = jest.fn();
 

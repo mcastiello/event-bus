@@ -69,10 +69,6 @@ export class EventChannel<Definitions extends GenericEventBusDefinition, Channel
     return this.#publishAsynchronously;
   }
 
-  get channelConfig() {
-    return this.#channelConfig;
-  }
-
   getEventConfig<Event extends EventOf<Definitions, Channel>>(
     event: Event,
   ): EventConfigurationOf<Definitions, Channel, Event> | undefined {

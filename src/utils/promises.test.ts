@@ -40,4 +40,19 @@ describe("CancellablePromise", () => {
       expect(e).toEqual(error);
     }
   });
+  test("It should generate a resolved promise", async () => {
+    const promise = CancellablePromise.resolve(true);
+
+    expect(await promise).toEqual(true);
+  });
+  test("It should generate a rejected promise", async () => {
+    const error = "Error";
+    const promise = CancellablePromise.reject(error);
+
+    try {
+      await promise;
+    } catch (e) {
+      expect(e).toEqual(error);
+    }
+  });
 });

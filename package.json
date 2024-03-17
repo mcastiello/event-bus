@@ -5,7 +5,7 @@
   "license": "MIT",
   "source": "src/index.ts",
   "main": "dist/index.js",
-  "module": "dist/index.modern.js",
+  "module": "dist/index.modern.mjs",
   "types": "dist/index.d.ts",
   "repository": {
     "url": "git@github.com:mcastiello/event-bus.git",
@@ -19,7 +19,7 @@
   },
   "scripts": {
     "clean": "rimraf ./dist ./coverage",
-    "compile": "microbundle build --compress --no-sourcemap --format modern,cjs",
+    "compile": "microbundle build --compress --no-sourcemap --format modern,cjs --tsconfig tsconfig.build.json",
     "build": "yarn clean && yarn compile",
     "test": "jest --coverage",
     "quality:fix": "eslint --fix src/**/*.ts",
