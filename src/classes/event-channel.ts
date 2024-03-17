@@ -11,7 +11,7 @@ import {
   SubscriptionConfig,
   SubscriptionOf,
 } from "../types";
-import { CancellablePromise } from "../utils/promises";
+import { CancellablePromise } from "@mcastiello/cancellable-promise";
 import {
   ChannelCache,
   ClearFunction,

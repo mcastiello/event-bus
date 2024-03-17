@@ -1,6 +1,6 @@
 {
   "name": "@mcastiello/event-bus",
-  "version": "0.0.6",
+  "version": "0.1.0",
   "author": "Marco Castiello <marco.castiello@gmail.com>",
   "license": "MIT",
   "source": "src/index.ts",
@@ -14,6 +14,22 @@
   "files": [
     "./dist"
   ],
+  "typesVersions": {
+    "*": {
+      ".": [
+        "dist/index.d.ts"
+      ]
+    }
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.modern.mjs",
+      "default": "./dist/index.js"
+    }
+  },
+  "keywords": ["Events", "Event Bus", "Messages", "Publish", "Subscribe"],
   "engines": {
     "node": ">20.0.0"
   },
@@ -24,6 +40,9 @@
     "test": "jest --coverage",
     "quality:fix": "eslint --fix src/**/*.ts",
     "quality:check": "eslint src/**/*.ts"
+  },
+  "dependencies": {
+    "@mcastiello/cancellable-promise": "^0.0.3"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^6.13.1",

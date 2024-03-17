@@ -90,3 +90,8 @@ export type ResponseHandler<
   resolve: ResponseResolver<Definitions, Channel, Event>,
   reject: ResponseReject<Definitions, Channel, Event>,
 ) => void;
+
+export type PrivateChannel<Definitions extends GenericEventBusDefinition, Channel extends ChannelOf<Definitions>> = {
+  channel: Channel;
+  id: string;
+};
