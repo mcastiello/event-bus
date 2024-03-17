@@ -4,32 +4,21 @@ import { EventBusConfiguration } from "../types";
 enum Channels {
   A = "A",
   B = "B",
-  C = "C",
 }
 
 enum Events {
   Boolean = "bool",
   String = "str",
 }
-enum RequestEvents {
-  Request = "req",
-  Response = "resp",
-  Error = "err",
-}
 
 type Def = {
   [Channels.A]: {
-    [Events.Boolean]: boolean;
-    [Events.String]: string;
+    [Events.Boolean]: { payload: boolean };
+    [Events.String]: { payload: string };
   };
   [Channels.B]: {
-    [Events.Boolean]: undefined;
-    [Events.String]: string[];
-  };
-  [Channels.C]: {
-    [RequestEvents.Request]: string;
-    [RequestEvents.Response]: number[];
-    [RequestEvents.Error]: Error;
+    [Events.Boolean]: { payload: undefined };
+    [Events.String]: { payload: string[] };
   };
 };
 
@@ -39,16 +28,10 @@ const config: EventBusConfiguration<Def> = {
       defaultValue: ["a", "b"],
     },
   },
-  [Channels.C]: {
-    [RequestEvents.Request]: {
-      responseEvent: RequestEvents.Response,
-      errorEvent: RequestEvents.Error,
-    },
-  },
 };
 
 describe("EventBus", () => {
-  const bus = new EventBus({ events: config });
+  const bus = new EventBus<Def>({ events: config });
   beforeEach(() => {
     bus.clear();
   });

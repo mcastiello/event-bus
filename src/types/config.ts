@@ -1,12 +1,12 @@
-import { GenericEventBusConfiguration } from "./events";
+import { EventBusConfiguration, GenericEventBusDefinition } from "./events";
 
 export type EventChannelConfig = {
   cacheEvents?: boolean;
   publishAsynchronously?: boolean;
 };
 
-export type EventBusConfig<Definitions extends GenericEventBusConfiguration> = EventChannelConfig & {
-  events?: Definitions;
+export type EventBusConfig<Definitions extends GenericEventBusDefinition> = EventChannelConfig & {
+  events?: EventBusConfiguration<Definitions>;
 };
 
 export type SubscriptionConfig = {
