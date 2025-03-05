@@ -5,7 +5,7 @@
   "license": "MIT",
   "source": "src/index.ts",
   "main": "dist/index.js",
-  "module": "dist/index.modern.mjs",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "repository": {
     "url": "git@github.com:mcastiello/event-bus.git",
@@ -25,7 +25,7 @@
     ".": {
       "types": "./dist/index.d.ts",
       "require": "./dist/index.js",
-      "import": "./dist/index.modern.mjs",
+      "import": "./dist/index.js",
       "default": "./dist/index.js"
     }
   },
